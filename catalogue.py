@@ -1,5 +1,8 @@
 from typing import Sequence, Any, Dict, Tuple, Callable, Optional, TypeVar
 
+# Removed import_lib to fascilitate lambda
+AVAILABLE_ENTRY_POINTS = {}
+
 # This is where functions will be registered
 REGISTRY: Dict[Tuple[str, ...], Any] = {}
 
@@ -76,7 +79,17 @@ class Registry(object):
         name (str): The name.
         RETURNS (Any): The registered function.
         """
-        raise RemovedError
+        if self.entry_points:
+            from_entry_point = self.get_entry_point(name)
+            if from_entry_point:
+                return from_entry_point
+        namespace = list(self.namespace) + [name]
+        if not check_exists(*namespace):
+            err = "Cant't find '{}' in registry {}. Available names: {}"
+            current_namespace = " -> ".join(self.namespace)
+            available = ", ".join(sorted(self.get_all().keys())) or "none"
+            raise RegistryError(err.format(name, current_namespace, available))
+        return _get(namespace)
 
     def get_all(self) -> Dict[str, Any]:
         """Get a all functions for a given namespace.
@@ -100,7 +113,11 @@ class Registry(object):
 
         RETURNS (Dict[str, Any]): Entry points, keyed by name.
         """
-        raise RemovedError
+        result = {}
+        for entry_point in AVAILABLE_ENTRY_POINTS.get(
+                self.entry_point_namespace, []):
+            result[entry_point.name] = entry_point.load()
+        return result
 
     def get_entry_point(self, name: str, default: Optional[Any] = None) -> Any:
         """Check if registered entry point is available for a given name in the
@@ -110,7 +127,11 @@ class Registry(object):
         default (Any): The default value to return.
         RETURNS (Any): The loaded entry point or the default value.
         """
-        raise RemovedError
+        for entry_point in AVAILABLE_ENTRY_POINTS.get(
+                self.entry_point_namespace, []):
+            if entry_point.name == name:
+                return entry_point.load()
+        return default
 
 
 def check_exists(*namespace: str) -> bool:
@@ -184,7 +205,3 @@ def _remove(namespace: Sequence[str]) -> Any:
 
 class RegistryError(ValueError):
     pass
-
-
-class RemovedError(NotImplementedError):
-    raise
