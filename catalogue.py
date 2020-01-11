@@ -1,16 +1,7 @@
 from typing import Sequence, Any, Dict, Tuple, Callable, Optional, TypeVar
 
-try:  # Python 3.8
-    import importlib.metadata as importlib_metadata
-except ImportError:
-    import importlib_metadata  # type: ignore
-
-# Only ever call this once for performance reasons
-AVAILABLE_ENTRY_POINTS = importlib_metadata.entry_points()  # type: ignore
-
 # This is where functions will be registered
 REGISTRY: Dict[Tuple[str, ...], Any] = {}
-
 
 InFunc = TypeVar("InFunc")
 
@@ -28,7 +19,9 @@ def create(*namespace: str, entry_points: bool = False) -> "Registry":
 
 
 class Registry(object):
-    def __init__(self, namespace: Sequence[str], entry_points: bool = False) -> None:
+    def __init__(self,
+                 namespace: Sequence[str],
+                 entry_points: bool = False) -> None:
         """Initialize a new registry.
 
         namespace (Sequence[str]): The namespace.
@@ -48,9 +41,9 @@ class Registry(object):
         has_entry_point = self.entry_points and self.get_entry_point(name)
         return has_entry_point or namespace in REGISTRY
 
-    def __call__(
-        self, name: str, func: Optional[Any] = None
-    ) -> Callable[[InFunc], InFunc]:
+    def __call__(self,
+                 name: str,
+                 func: Optional[Any] = None) -> Callable[[InFunc], InFunc]:
         """Register a function for a given namespace. Same as Registry.register.
 
         name (str): The name to register under the namespace.
@@ -59,16 +52,16 @@ class Registry(object):
         """
         return self.register(name, func=func)
 
-    def register(
-        self, name: str, *, func: Optional[Any] = None
-    ) -> Callable[[InFunc], InFunc]:
+    def register(self,
+                 name: str,
+                 *,
+                 func: Optional[Any] = None) -> Callable[[InFunc], InFunc]:
         """Register a function for a given namespace.
 
         name (str): The name to register under the namespace.
         func (Any): Optional function to register (if not used as decorator).
         RETURNS (Callable): The decorator.
         """
-
         def do_registration(func):
             _set(list(self.namespace) + [name], func)
             return func
@@ -83,17 +76,7 @@ class Registry(object):
         name (str): The name.
         RETURNS (Any): The registered function.
         """
-        if self.entry_points:
-            from_entry_point = self.get_entry_point(name)
-            if from_entry_point:
-                return from_entry_point
-        namespace = list(self.namespace) + [name]
-        if not check_exists(*namespace):
-            err = "Cant't find '{}' in registry {}. Available names: {}"
-            current_namespace = " -> ".join(self.namespace)
-            available = ", ".join(sorted(self.get_all().keys())) or "none"
-            raise RegistryError(err.format(name, current_namespace, available))
-        return _get(namespace)
+        raise RemovedError
 
     def get_all(self) -> Dict[str, Any]:
         """Get a all functions for a given namespace.
@@ -107,8 +90,8 @@ class Registry(object):
             result.update(self.get_entry_points())
         for keys, value in REGISTRY.items():
             if len(self.namespace) == len(keys) - 1 and all(
-                self.namespace[i] == keys[i] for i in range(len(self.namespace))
-            ):
+                    self.namespace[i] == keys[i]
+                    for i in range(len(self.namespace))):
                 result[keys[-1]] = value
         return result
 
@@ -117,10 +100,7 @@ class Registry(object):
 
         RETURNS (Dict[str, Any]): Entry points, keyed by name.
         """
-        result = {}
-        for entry_point in AVAILABLE_ENTRY_POINTS.get(self.entry_point_namespace, []):
-            result[entry_point.name] = entry_point.load()
-        return result
+        raise RemovedError
 
     def get_entry_point(self, name: str, default: Optional[Any] = None) -> Any:
         """Check if registered entry point is available for a given name in the
@@ -130,10 +110,7 @@ class Registry(object):
         default (Any): The default value to return.
         RETURNS (Any): The loaded entry point or the default value.
         """
-        for entry_point in AVAILABLE_ENTRY_POINTS.get(self.entry_point_namespace, []):
-            if entry_point.name == name:
-                return entry_point.load()
-        return default
+        raise RemovedError
 
 
 def check_exists(*namespace: str) -> bool:
@@ -173,9 +150,8 @@ def _get_all(namespace: Sequence[str]) -> Dict[Tuple[str, ...], Any]:
     global REGISTRY
     result = {}
     for keys, value in REGISTRY.items():
-        if len(namespace) <= len(keys) and all(
-            namespace[i] == keys[i] for i in range(len(namespace))
-        ):
+        if len(namespace) <= len(keys) and all(namespace[i] == keys[i]
+                                               for i in range(len(namespace))):
             result[keys] = value
     return result
 
@@ -208,3 +184,7 @@ def _remove(namespace: Sequence[str]) -> Any:
 
 class RegistryError(ValueError):
     pass
+
+
+class RemovedError(NotImplementedError):
+    raise

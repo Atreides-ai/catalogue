@@ -2,6 +2,8 @@
 
 # catalogue: Super lightweight function registries for your library
 
+# catalogueLamdba - Hacked together removing all use of the dreaded importlib_metadata
+
 `catalogue` is a tiny, zero-dependencies library that makes it easy to **add
 function (or object) registries** to your code. Function registries are helpful
 when you have objects that need to be both easily serializable and fully

@@ -3,4 +3,4 @@
 if __name__ == "__main__":
     from setuptools import setup
 
-    setup(name="catalogue")
+    setup(name="catalogueLambda")
